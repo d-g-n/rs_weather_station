@@ -7,6 +7,7 @@ use std::error::Error;
 use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
 use ringbuf::RingBuffer;
+use chrono::prelude::*;
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
@@ -31,20 +32,32 @@ fn index() -> &'static str {
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
-    let mut rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
 
     let gpios = Gpio::new().unwrap();
+    let rb: RingBuffer<i64> = RingBuffer::<i64>::new(RING_BUFFER_SIZE);
+    let (mut prod, mut cons) = rb.split();
 
     let mut pin = gpios
         .get(GPIO_RADIO)
         .unwrap()
         .into_input_pulldown();
 
-    let mut pinRes = pin.set_async_interrupt(Trigger::Both, move |level| {
+    let mut last_time = Utc::now();
+
+    let mut pin_res = pin.set_async_interrupt(Trigger::Both, move |level| {
         println!("received level {:?} ", level);
+
+        let new_time = Utc::now();
+        let duration_micros = new_time.signed_duration_since(last_time)
+            .num_microseconds().unwrap();
+        let push_res = prod.push(duration_micros);
+
+        println!("received calculated duration {:?}", duration_micros)
+
+        ()
     });
 
-    match pinRes {
+    match pin_res {
         Ok(()) => {
             println!("Registered GPIO pin okay");
         }
