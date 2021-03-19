@@ -23,18 +23,15 @@ const LAST_SYNC_LENGTH: u8 = 15900;
 
 const RING_BUFFER_SIZE: usize = 256;
 
-fn handle_interrupt(rb: RingBuffer<i32>, level: Level) -> () {
-
-    ()
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
     let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
 
 
     let mut pin = Gpio::new()?.get(GPIO_RADIO)?.into_input()
-        .set_async_interrupt(Trigger::Both, partial!(handle_interrupt => rb, _));
+        .set_async_interrupt(Trigger::Both, |level| {
+            println!("received level")
+        });
 
 
     Ok(())
