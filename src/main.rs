@@ -29,19 +29,22 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
-
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
-    let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
+    let mut rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
 
+    let gpios = Gpio::new().unwrap();
 
-    let mut pin = Gpio::new()?.get(GPIO_RADIO)?.into_input()
-        .set_async_interrupt(Trigger::Both, |level: Level| {
-            println!("received level {} ", level);
+    let mut pin = gpios
+        .get(GPIO_RADIO)
+        .unwrap()
+        .into_input_pulldown();
 
-        });
+    let mut pinRes = pin.set_async_interrupt(Trigger::Both, move |level| {
+        println!("received level {:?} ", level);
+    });
 
-    match pin {
+    match pinRes {
         Ok(()) => {
             println!("Registered GPIO pin okay");
         }
