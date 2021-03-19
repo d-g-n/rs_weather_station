@@ -4,25 +4,39 @@ use std::time::Duration;
 
 use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
+use ringbuf::RingBuffer;
+#[macro_use]
+extern crate partial_application;
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
 
-fn handle(level: Level) -> Result<(), Box<dyn Error>> {
+/*
+high 	- low 	- high 	- low 	- high 	- low 	- high 	- low 	- high 	- sync 	- 40 bits 	- end sample?
+48s  	- 41s 	- 46s  	- 42s 	- 47s  	- 42s 	- 47s  	- 42s 	- 27s  	- 345s 	- ???     	- 702s
+1.09ms 	- 0.92	- 1.04	- 0.95	- 1.07 	- 0.95	- 1.07	- 0.95	- 0.61	- 7.82 	- ???		- 15.92
+ */
+
+const BIT1_LENGTH: u8 = 3900;
+const BIT0_LENGTH: u8 = 1800;
+const FIRST_SYNC_LENGTH: u8 = 7900;
+const LAST_SYNC_LENGTH: u8 = 15900;
+
+const RING_BUFFER_SIZE: usize = 256;
+
+fn handle_interrupt(rb: RingBuffer<i32>, level: Level) -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Blinking an LED on a {}.", DeviceInfo::new()?.model());
+    println!("Started {}.", DeviceInfo::new()?.model());
+    let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
+
 
     let mut pin = Gpio::new()?.get(GPIO_RADIO)?.into_input()
-        .set_async_interrupt(Trigger::Both, handle);
+        .set_async_interrupt(Trigger::Both, partial!(handle_interrupt => rb, _));
 
-    // Blink the LED by setting the pin's logic level high for 500 ms.
-    pin.set_high();
-    thread::sleep(Duration::from_millis(500));
-    pin.set_low();
 
     Ok(())
 }
