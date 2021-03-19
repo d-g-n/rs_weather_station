@@ -44,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut last_time = Utc::now();
 
-    let mut pin_res = pin.set_async_interrupt(Trigger::Both, move |level| {
+    let mut pin_res = pin.set_async_interrupt(Trigger::Both, move |level: Level| {
         println!("received level {:?} ", level);
 
         let new_time = Utc::now();
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .num_microseconds().unwrap();
         let push_res = prod.push(duration_micros);
 
-        println!("received calculated duration {:?}", duration_micros)
+        println!("received calculated duration {:?}", duration_micros);
 
         ()
     });
