@@ -16,10 +16,10 @@ high 	- low 	- high 	- low 	- high 	- low 	- high 	- low 	- high 	- sync 	- 40 b
 1.09ms 	- 0.92	- 1.04	- 0.95	- 1.07 	- 0.95	- 1.07	- 0.95	- 0.61	- 7.82 	- ???		- 15.92
  */
 
-const BIT1_LENGTH: u8 = 3900;
-const BIT0_LENGTH: u8 = 1800;
-const FIRST_SYNC_LENGTH: u8 = 7900;
-const LAST_SYNC_LENGTH: u8 = 15900;
+const BIT1_LENGTH: u32 = 3900;
+const BIT0_LENGTH: u32 = 1800;
+const FIRST_SYNC_LENGTH: u32 = 7900;
+const LAST_SYNC_LENGTH: u32 = 15900;
 
 const RING_BUFFER_SIZE: usize = 256;
 
@@ -29,8 +29,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 
     let mut pin = Gpio::new()?.get(GPIO_RADIO)?.into_input()
-        .set_async_interrupt(Trigger::Both, |level| {
-            println!("received level")
+        .set_async_interrupt(Trigger::Both, |level: Level| {
+            println!("received level {} ", level);
         });
 
 
