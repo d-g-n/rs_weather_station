@@ -29,17 +29,19 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
+
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
     let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
 
 
-    Gpio::new()?.get(GPIO_RADIO)?.into_input()
+    let mut pin = Gpio::new()?.get(GPIO_RADIO)?.into_input()
         .set_async_interrupt(Trigger::Both, |level: Level| {
             println!("received level {} ", level);
 
         });
 
+    println!("Is GPIO RADIO pin okay: {}", pin.is_ok());
 
     rocket::ignite().mount("/", routes![index]).launch();
 
