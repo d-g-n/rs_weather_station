@@ -61,20 +61,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         //println!("received calculated duration {:?}", duration_micros);
 
-        if ingestion_vec.len() >= RING_BUFFER_SIZE {
-            ingestion_vec.clear();
-        }
-
-        if duration_micros > (FIRST_SYNC_LENGTH - 1000)
-            && duration_micros < (FIRST_SYNC_LENGTH + 1000) {
-
-            // First sync indicates we should begin ingestion
-
-            ingestion_vec.clear();
-            should_ingest = true;
-
-        }
-
         if duration_micros > (LAST_SYNC_LENGTH - 1000)
             && duration_micros < (LAST_SYNC_LENGTH + 1000) {
             println!("received calculated duration {:?}", duration_micros);
@@ -111,6 +97,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if should_ingest {
             ingestion_vec.push(duration_micros);
+        }
+
+        if ingestion_vec.len() >= 1024 {
+            ingestion_vec.clear();
+        }
+
+        if duration_micros > (FIRST_SYNC_LENGTH - 1000)
+            && duration_micros < (FIRST_SYNC_LENGTH + 1000) {
+
+            // First sync indicates we should begin ingestion
+
+            ingestion_vec.clear();
+            should_ingest = true;
+
         }
 
         ()
