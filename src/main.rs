@@ -41,7 +41,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         });
 
-    println!("Is GPIO RADIO pin okay: {}", pin.is_ok());
+    match pin {
+        Ok(()) => {
+            println!("Registered GPIO pin okay");
+        }
+        Err(err) => {
+            println!("Could not register pin: {:?}", err)
+        }
+    }
 
     rocket::ignite().mount("/", routes![index]).launch();
 
