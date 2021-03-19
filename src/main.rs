@@ -8,6 +8,7 @@ use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
 use ringbuf::RingBuffer;
 use chrono::prelude::*;
+use bitvec::prelude::*;
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
@@ -38,7 +39,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut ingestion_vec: Vec<i64> = Vec::new();
 
-
     let (mut prod, mut cons) = rb.split();
 
     let mut pin = gpios
@@ -61,10 +61,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         //println!("received calculated duration {:?}", duration_micros);
 
+        if ingestion_vec.len() >= RING_BUFFER_SIZE {
+            ingestion_vec.clear();
+        }
+
         if duration_micros > (FIRST_SYNC_LENGTH - 1000)
             && duration_micros < (FIRST_SYNC_LENGTH + 1000) {
-            println!("received calculated duration {:?}", duration_micros);
-            println!("observed sync signal");
+
             // First sync indicates we should begin ingestion
 
             ingestion_vec.clear();
@@ -81,19 +84,25 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             should_ingest = false;
 
+            let mut bv: BitVec<Msb0, u8> = BitVec::new();
+
             let bit_vec = ingestion_vec.iter().flat_map(|&x| {
 
                 if x > (BIT0_LENGTH - 1000)
                     && x < (BIT0_LENGTH + 1000) {
+                    bv.push(false);
                     Some("0")
                 } else if x > (BIT1_LENGTH - 1000)
                     && x < (BIT1_LENGTH + 1000) {
+                    bv.push(true);
                     Some("1")
                 } else {
                     None
                 }
 
             }).collect::<Vec<_>>();
+
+            println!("bit vector is: {}", bv.to_string());
 
             println!("generated bits are: {}", bit_vec.join(""));
 
