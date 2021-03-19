@@ -50,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let new_time = Utc::now();
         let duration_micros = new_time.signed_duration_since(last_time)
             .num_microseconds().unwrap();
+        last_time = new_time;
         let push_res = prod.push(duration_micros);
 
         println!("received calculated duration {:?}", duration_micros);
