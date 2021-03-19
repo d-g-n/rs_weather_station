@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut should_ingest: bool = false;
 
-    let mut pin_res = pin.set_async_interrupt(Trigger::Both, move |level: Level| {
+    let pin_res = pin.set_async_interrupt(Trigger::Both, move |level: Level| {
         //println!("received level {:?} ", level);
 
         let new_time = Utc::now();
@@ -80,6 +80,24 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("ingestion length was: {}", ingestion_vec.len());
 
             should_ingest = false;
+
+            let bit_vec = ingestion_vec.iter().flat_map(|&x| {
+
+                if x > (BIT0_LENGTH - 1000)
+                    && x < (BIT0_LENGTH + 1000) {
+                    Some("0")
+                } else if x > (BIT1_LENGTH - 1000)
+                    && x < (BIT1_LENGTH + 1000) {
+                    Some("1")
+                } else {
+                    None
+                }
+
+            }).collect::<Vec<_>>();
+
+            println!("generated bits are: {}", bit_vec.join(""));
+
+            ingestion_vec.clear();
         }
 
         if should_ingest {
