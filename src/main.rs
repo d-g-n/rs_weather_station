@@ -29,10 +29,6 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
-fn handle_interrupt(level: Level, rb: RingBuffer<i32>) -> () {
-
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
     let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
@@ -41,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Gpio::new()?.get(GPIO_RADIO)?.into_input()
         .set_async_interrupt(Trigger::Both, |level: Level| {
             println!("received level {} ", level);
-            handle_interrupt(level, rb);
+
         });
 
 
