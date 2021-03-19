@@ -1,6 +1,5 @@
 use std::error::Error;
-use std::thread;
-use std::time::Duration;
+
 
 use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
@@ -24,9 +23,9 @@ const LAST_SYNC_LENGTH: u8 = 15900;
 
 const RING_BUFFER_SIZE: usize = 256;
 
-fn handle_interrupt(rb: RingBuffer<i32>, level: Level) -> Result<(), Box<dyn Error>> {
+fn handle_interrupt(rb: RingBuffer<i32>, level: Level) -> () {
 
-    Ok(())
+    ()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
