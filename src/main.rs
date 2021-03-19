@@ -61,6 +61,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("observed sync signal");
         }
 
+        if duration_micros > (LAST_SYNC_LENGTH - 1000)
+            && duration_micros < (LAST_SYNC_LENGTH + 1000) {
+            println!("received calculated duration {:?}", duration_micros);
+            println!("observed last sync signal");
+        }
+
         ()
     });
 
