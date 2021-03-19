@@ -35,6 +35,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let gpios = Gpio::new().unwrap();
     let rb: RingBuffer<i64> = RingBuffer::<i64>::new(RING_BUFFER_SIZE);
+
+    let mut ingestion_vec: Vec<i64> = Vec::new();
+
+
     let (mut prod, mut cons) = rb.split();
 
     let mut pin = gpios
@@ -43,6 +47,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_input_pulldown();
 
     let mut last_time = Utc::now();
+
+    let mut should_ingest: bool = false;
 
     let mut pin_res = pin.set_async_interrupt(Trigger::Both, move |level: Level| {
         //println!("received level {:?} ", level);
@@ -59,12 +65,25 @@ fn main() -> Result<(), Box<dyn Error>> {
             && duration_micros < (FIRST_SYNC_LENGTH + 1000) {
             println!("received calculated duration {:?}", duration_micros);
             println!("observed sync signal");
+            // First sync indicates we should begin ingestion
+
+            ingestion_vec.clear();
+            should_ingest = true;
+
         }
 
         if duration_micros > (LAST_SYNC_LENGTH - 1000)
             && duration_micros < (LAST_SYNC_LENGTH + 1000) {
             println!("received calculated duration {:?}", duration_micros);
             println!("observed last sync signal");
+
+            println!("ingestion length was: {}", ingestion_vec.len());
+
+            should_ingest = false;
+        }
+
+        if should_ingest {
+            ingestion_vec.push(duration_micros);
         }
 
         ()
