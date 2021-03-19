@@ -1,11 +1,12 @@
-use std::error::Error;
+#![feature(proc_macro_hygiene, decl_macro)]
 
+#[macro_use] extern crate rocket;
+
+use std::error::Error;
 
 use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
 use ringbuf::RingBuffer;
-#[macro_use]
-extern crate partial_application;
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
@@ -23,6 +24,11 @@ const LAST_SYNC_LENGTH: u32 = 15900;
 
 const RING_BUFFER_SIZE: usize = 256;
 
+#[get("/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
     let rb: RingBuffer<i32> = RingBuffer::<i32>::new(RING_BUFFER_SIZE);
@@ -33,6 +39,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("received level {} ", level);
         });
 
+
+    rocket::ignite().mount("/", routes![index]).launch();
 
     Ok(())
 }
