@@ -8,7 +8,7 @@ use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
 use chrono::prelude::*;
 use bitvec::prelude::*;
-use influxdb::{Client, Timestamp};
+use influxdb::Client;
 use influxdb::InfluxDbWriteable;
 
 // Gpio uses BCM pin numbering.
@@ -144,18 +144,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                         char_to_float(temp_string[1]) / 10.0;
                 }
 
-                println!("tempf_float: {}", tempf_float);
+                let tempc_float = (tempf_float - 32.0) * 5.0/9.0;
 
-                println!("tempf_bin: {}", temp.to_string());
+                println!("tempf: {}, tempc: {}, hum: {}, chan: {}",
+                         tempf_float, tempc_float, hum_num, chan);
 
-                println!("tempf: {}, lhum: {}, rhum: {}, hum: {}, chan: {}",
-                         tempf_num, lhum_num, rhum_num, hum_num, chan);
 
                 let weather_reading = WeatherReading {
                     time: Utc::now(),
                     humidity: hum_num,
-                    temp_c: 10.0,
-                    temp_f: 10.0,
+                    temp_c: tempc_float,
+                    temp_f: tempf_float,
                     channel: chan
                 };
 
