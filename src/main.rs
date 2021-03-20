@@ -24,6 +24,7 @@ const BIT1_LENGTH: i64 = 3900;
 const BIT0_LENGTH: i64 = 1800;
 const FIRST_SYNC_LENGTH: i64 = 7900;
 const LAST_SYNC_LENGTH: i64 = 15900;
+const SIGNAL_VARIANCE: i64 = 500;
 
 const RING_BUFFER_SIZE: usize = 256;
 
@@ -72,12 +73,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         //println!("received calculated duration {:?}", duration_micros);
 
-        if duration_micros > (LAST_SYNC_LENGTH - 1000)
-            && duration_micros < (LAST_SYNC_LENGTH + 1000) {
-            println!("received calculated duration {:?}", duration_micros);
-            println!("observed last sync signal");
+        if duration_micros > (LAST_SYNC_LENGTH - SIGNAL_VARIANCE)
+            && duration_micros < (LAST_SYNC_LENGTH + SIGNAL_VARIANCE) {
+            //println!("received calculated duration {:?}", duration_micros);
+            //println!("observed last sync signal");
 
-            println!("ingestion length was: {}", ingestion_vec.len());
+            //println!("ingestion length was: {}", ingestion_vec.len());
 
             should_ingest = false;
 
@@ -85,11 +86,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             ingestion_vec.iter().for_each(|&x| {
 
-                if x > (BIT0_LENGTH - 1000)
-                    && x < (BIT0_LENGTH + 1000) {
+                if x > (BIT0_LENGTH - SIGNAL_VARIANCE)
+                    && x < (BIT0_LENGTH + SIGNAL_VARIANCE) {
                     bit_vec.push(false);
-                } else if x > (BIT1_LENGTH - 1000)
-                    && x < (BIT1_LENGTH + 1000) {
+                } else if x > (BIT1_LENGTH - SIGNAL_VARIANCE)
+                    && x < (BIT1_LENGTH + SIGNAL_VARIANCE) {
                     bit_vec.push(true);
                 } else {
                     ()
@@ -97,7 +98,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             });
 
-            println!("bit vector is: {}, length is: {}", bit_vec.to_string(), bit_vec.len());
+            //println!("bit vector is: {}, length is: {}", bit_vec.to_string(), bit_vec.len());
 
             if bit_vec.len() == 40 {
                 // bits 16 to 28 are temp in weird encoding
@@ -146,6 +147,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 let tempc_float = (tempf_float - 32.0) * 5.0/9.0;
 
+                println!("Processing bit vector of length 40: {}", bit_vec.to_string());
                 println!("tempf: {}, tempc: {}, hum: {}, chan: {}",
                          tempf_float, tempc_float, hum_num, chan);
 
@@ -177,8 +179,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             ingestion_vec.clear();
         }
 
-        if duration_micros > (FIRST_SYNC_LENGTH - 1000)
-            && duration_micros < (FIRST_SYNC_LENGTH + 1000) {
+        if duration_micros > (FIRST_SYNC_LENGTH - SIGNAL_VARIANCE)
+            && duration_micros < (FIRST_SYNC_LENGTH + SIGNAL_VARIANCE) {
 
             // First sync indicates we should begin ingestion
 
