@@ -97,15 +97,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             });
 
+            println!("bit vector is: {}, length is: {}", bit_vec.to_string(), bit_vec.len());
+
             // bits 17 to 28 are temp in weird encoding
             // bits 29 to 32 are lhum
             // bits 33 to 36 are rhum
             // bits 36 to 40 are the channel bits
-            let rhum: &BitSlice<bitvec::order::Msb0, u8> = &bit_vec[29 .. 32];
+            //let rhum: &BitSlice<bitvec::order::Msb0, u8> = &bit_vec[29 .. 32];
 
-            println!("rhum is: {}", rhum.to_string());
+            //println!("rhum is: {}", rhum.to_string());
 
-            println!("bit vector is: {}", bit_vec.to_string());
+
 
             ingestion_vec.clear();
         }
