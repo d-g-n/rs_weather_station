@@ -39,7 +39,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let client = Client::new("http://localhost:8086", "rs_weather_sensors");
     let gpios = Gpio::new().unwrap();
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
 
 
     #[derive(InfluxDbWriteable)]
@@ -139,7 +138,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let write_result = client
                         .query(&weather_reading.into_query("weather"))
                         .await;
-                }
+                };
 
                 println!("rhum is: {}", rhum.to_string());
             }
