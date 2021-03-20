@@ -8,9 +8,9 @@ use rppal::gpio::{Gpio, Trigger, Level};
 use rppal::system::DeviceInfo;
 use chrono::prelude::*;
 use bitvec::prelude::*;
-use influxdb::{Client, Query, Timestamp};
+use influxdb::{Client, Timestamp};
 use influxdb::InfluxDbWriteable;
-use async_std::prelude::*;
+
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
 
@@ -110,27 +110,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let rhum: &BitSlice<Msb0, u8> = &bit_vec[32 .. 36];
                 let chan: &BitSlice<Msb0, u8> = &bit_vec[36 .. 40];
 
-                /*
-                struct WeatherReading {
-        time: DateTime<Utc>,
-        humidity: u8,
-        temp_c: i8,
-        temp_f: i16,
-        channel: u8,
-    }
-                 */
-
                 let tempf_num = temp.load::<u16>();
                 let lhum_num = lhum.load::<u8>();
                 let rhum_num = rhum.load::<u8>();
                 let hum_num = lhum_num * 10 + rhum_num;
                 let chan = chan.load::<u8>();
 
+                println!("tempf_bin: {}", temp.to_string());
+
                 println!("tempf: {}, lhum: {}, rhum: {}, hum: {}, chan: {}",
                          tempf_num, lhum_num, rhum_num, hum_num, chan);
 
                 let weather_reading = WeatherReading {
-                    time: Timestamp::Seconds(Utc::now().second() as u128).into(),
+                    time: Utc::now(),
                     humidity: hum_num,
                     temp_c: 10,
                     temp_f: 10,
@@ -138,12 +130,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 };
 
                 async_std::task::block_on(async {
-                    let write_result = client
+                    let _write_result = client
                         .query(&weather_reading.into_query("weather"))
                         .await;
                 });
 
-                println!("rhum is: {}", rhum.to_string());
             }
 
             ingestion_vec.clear();
