@@ -41,9 +41,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[derive(InfluxDbWriteable)]
     struct WeatherReading {
         time: DateTime<Utc>,
-        humidity: i32,
-        temp_c: i32,
-        temp_f: i32,
+        humidity: u8,
+        temp_c: i8,
+        temp_f: i16,
+        channel: u8,
     }
 
     let mut ingestion_vec: Vec<i64> = Vec::new();
@@ -57,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut should_ingest: bool = false;
 
-    let pin_res = pin.set_async_interrupt(Trigger::Both, move |level: Level| {
+    let pin_res = pin.set_async_interrupt(Trigger::Both, move |_level: Level| {
         //println!("received level {:?} ", level);
 
         let new_time = Utc::now();
@@ -96,12 +97,43 @@ fn main() -> Result<(), Box<dyn Error>> {
             println!("bit vector is: {}, length is: {}", bit_vec.to_string(), bit_vec.len());
 
             if bit_vec.len() == 40 {
-                // bits 17 to 28 are temp in weird encoding
-                // bits 29 to 32 are lhum
-                // bits 33 to 36 are rhum
+                // bits 16 to 28 are temp in weird encoding
+                // bits 28 to 32 are lhum
+                // bits 32 to 36 are rhum
                 // bits 36 to 40 are the channel bits
 
-                let rhum: &BitSlice<bitvec::order::Msb0, u8> = &bit_vec[29 .. 32];
+                let temp: &BitSlice<Msb0, u32> = &bit_vec[16 .. 28];
+                let lhum: &BitSlice<Msb0, u8> = &bit_vec[28 .. 32];
+                let rhum: &BitSlice<Msb0, u8> = &bit_vec[32 .. 36];
+                let chan: &BitSlice<Msb0, u8> = &bit_vec[36 .. 40];
+
+                /*
+                struct WeatherReading {
+        time: DateTime<Utc>,
+        humidity: u8,
+        temp_c: i8,
+        temp_f: i16,
+        channel: u8,
+    }
+                 */
+
+                let lhum_num = lhum.load::<u8>();
+                let rhum_num = rhum.load::<u8>();
+                let chan = chan.load::<u8>();
+
+                println("lhum: {}, rhum: {}, chan: {}", lhum_num, rhum_num, chan);
+
+                let weather_reading = WeatherReading {
+                    time: Timestamp::Hours(1).into(),
+                    humidity: 30,
+                    temp_c: 10,
+                    temp_f: 10,
+                    channel: chan
+                };
+
+                let write_result = client
+                    .query(&weather_reading.into_query("weather"))
+                    .await;
 
                 println!("rhum is: {}", rhum.to_string());
             }
