@@ -10,7 +10,7 @@ use chrono::prelude::*;
 use bitvec::prelude::*;
 use influxdb::{Client, Query, Timestamp};
 use influxdb::InfluxDbWriteable;
-
+use async_std::prelude::*;
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
 
@@ -134,11 +134,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     channel: chan
                 };
 
-                async {
+                async_std::task::block_on(async {
                     let write_result = client
                         .query(&weather_reading.into_query("weather"))
                         .await;
-                };
+                });
 
                 println!("rhum is: {}", rhum.to_string());
             }
