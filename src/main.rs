@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                          tempf_num, lhum_num, rhum_num, hum_num, chan);
 
                 let weather_reading = WeatherReading {
-                    time: Timestamp::Hours(1).into(),
+                    time: Timestamp::Seconds(Utc::now().second() as u128).into(),
                     humidity: hum_num,
                     temp_c: 10,
                     temp_f: 10,
