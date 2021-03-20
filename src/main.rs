@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // bits 29 to 32 are lhum
             // bits 33 to 36 are rhum
             // bits 36 to 40 are the channel bits
-            let rhum: &BitSlice = &bit_vec[29 .. 32];
+            let rhum: &BitSlice<bitvec::order::Msb0, u8> = &bit_vec[29 .. 32];
 
             println!("rhum is: {}", rhum.to_string());
 
