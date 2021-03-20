@@ -120,8 +120,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 const RADIX: u32 = 10;
 
-                fn char_to_float(blah: char) -> f64 {
-                    blah.to_digit(RADIX) as f64
+                fn char_to_float(char_to_convert: char) -> f64 {
+                    char_to_convert.to_digit(RADIX).unwrap() as f64
                 }
 
                 let mut tempf_float: f64 = 0.0;
@@ -139,6 +139,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     tempf_float = leftmost * 10.0 +
                         char_to_float(temp_string[2]) +
                         char_to_float(temp_string[3]) / 10.0;
+                } else if temp_string.len() == 2 {
+                    tempf_float = char_to_float(temp_string[0]) +
+                        char_to_float(temp_string[1]) / 10.0;
                 }
 
                 println!("tempf_float: {}", tempf_float);
