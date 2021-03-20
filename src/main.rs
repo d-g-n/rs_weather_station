@@ -2,6 +2,7 @@
 
 #[macro_use] extern crate rocket;
 
+
 use std::error::Error;
 
 use rppal::gpio::{Gpio, Trigger, Level};
@@ -27,16 +28,19 @@ const LAST_SYNC_LENGTH: i64 = 15900;
 
 const RING_BUFFER_SIZE: usize = 256;
 
+
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[rocket::main]
+async fn main() {
     println!("Started {}.", DeviceInfo::new()?.model());
 
     let client = Client::new("http://localhost:8086", "rs_weather_sensors");
     let gpios = Gpio::new().unwrap();
+
 
     #[derive(InfluxDbWriteable)]
     struct WeatherReading {
@@ -102,7 +106,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // bits 32 to 36 are rhum
                 // bits 36 to 40 are the channel bits
 
-                let temp: &BitSlice<Msb0, u32> = &bit_vec[16 .. 28];
+                let temp: &BitSlice<Msb0, u8> = &bit_vec[16 .. 28];
                 let lhum: &BitSlice<Msb0, u8> = &bit_vec[28 .. 32];
                 let rhum: &BitSlice<Msb0, u8> = &bit_vec[32 .. 36];
                 let chan: &BitSlice<Msb0, u8> = &bit_vec[36 .. 40];
@@ -121,7 +125,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let rhum_num = rhum.load::<u8>();
                 let chan = chan.load::<u8>();
 
-                println("lhum: {}, rhum: {}, chan: {}", lhum_num, rhum_num, chan);
+                println!("lhum: {}, rhum: {}, chan: {}", lhum_num, rhum_num, chan);
 
                 let weather_reading = WeatherReading {
                     time: Timestamp::Hours(1).into(),
@@ -171,7 +175,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    rocket::ignite().mount("/", routes![index]).launch();
 
-    Ok(())
+    rocket::ignite().mount("/", routes![index]).launch().await;
+
 }
