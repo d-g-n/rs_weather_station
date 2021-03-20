@@ -45,8 +45,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     struct WeatherReading {
         time: DateTime<Utc>,
         humidity: u8,
-        temp_c: i8,
-        temp_f: i16,
+        temp_c: f64,
+        temp_f: f64,
         channel: u8,
     }
 
@@ -116,6 +116,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let hum_num = lhum_num * 10 + rhum_num;
                 let chan = chan.load::<u8>();
 
+                let temp_string: Vec<char> = tempf_num.to_string().chars().collect();
+
+                const RADIX: u32 = 10;
+
+                let mut tempf_float = 0.0;
+                if temp_string.len() == 3 {
+
+                    tempf_float = temp_string[0].as_u32() as f64 * 10.0 +
+                        temp_string[1].as_u32() as f64 +
+                        temp_string[2].as_u32() as f64 / 10.0;
+
+                } else if temp_string.len() == 4 {
+
+                    let leftmost = temp_string[0].as_u32() as f64 +
+                        temp_string[1].as_u32() as f64;
+
+                    tempf_float = leftmost * 10.0 +
+                        temp_string[2].as_u32() as f64 +
+                        temp_string[3].as_u32() as f64 / 10.0;
+                }
+
+                println!("tempf_float: {}", tempf_float);
+
                 println!("tempf_bin: {}", temp.to_string());
 
                 println!("tempf: {}, lhum: {}, rhum: {}, hum: {}, chan: {}",
@@ -124,8 +147,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let weather_reading = WeatherReading {
                     time: Utc::now(),
                     humidity: hum_num,
-                    temp_c: 10,
-                    temp_f: 10,
+                    temp_c: 10.0,
+                    temp_f: 10.0,
                     channel: chan
                 };
 
