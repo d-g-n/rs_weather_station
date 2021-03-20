@@ -36,7 +36,7 @@ fn index() -> &'static str {
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
 
-    let client = Client::new("http://localhost:8086", "grafana");
+    let client = Client::new("http://localhost:8086", "rs_weather_sensors");
     let gpios = Gpio::new().unwrap();
     let rb: RingBuffer<i64> = RingBuffer::<i64>::new(RING_BUFFER_SIZE);
 
