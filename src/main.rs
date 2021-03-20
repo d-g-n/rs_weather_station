@@ -120,15 +120,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
                  */
 
+                let tempf_num = temp.load::<i16>();
                 let lhum_num = lhum.load::<u8>();
                 let rhum_num = rhum.load::<u8>();
+                let hum_num = lhum_num * 10 + rhum_num;
                 let chan = chan.load::<u8>();
 
-                println!("lhum: {}, rhum: {}, chan: {}", lhum_num, rhum_num, chan);
+                println!("tempf: {}, lhum: {}, rhum: {}, hum: {}, chan: {}",
+                         tempf_num, lhum_num, rhum_num, hum_num, chan);
 
                 let weather_reading = WeatherReading {
                     time: Timestamp::Hours(1).into(),
-                    humidity: 30,
+                    humidity: hum_num,
                     temp_c: 10,
                     temp_f: 10,
                     channel: chan
