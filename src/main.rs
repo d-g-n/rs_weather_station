@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             should_ingest = false;
 
-            let mut bit_vec: BitVec<Msb0, u8> = BitVec::new();
+            let mut bit_vec: BitVec<Msb0, usize> = BitVec::new();
 
             ingestion_vec.iter().for_each(|&x| {
 
@@ -105,10 +105,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // bits 32 to 36 are rhum
                 // bits 36 to 40 are the channel bits
 
-                let temp: &BitSlice<Msb0, u8> = &bit_vec[16 .. 28];
-                let lhum: &BitSlice<Msb0, u8> = &bit_vec[28 .. 32];
-                let rhum: &BitSlice<Msb0, u8> = &bit_vec[32 .. 36];
-                let chan: &BitSlice<Msb0, u8> = &bit_vec[36 .. 40];
+                let temp: &BitSlice<Msb0, usize> = &bit_vec[16 .. 28];
+                let lhum: &BitSlice<Msb0, usize> = &bit_vec[28 .. 32];
+                let rhum: &BitSlice<Msb0, usize> = &bit_vec[32 .. 36];
+                let chan: &BitSlice<Msb0, usize> = &bit_vec[36 .. 40];
 
                 let tempf_num = temp.load::<u16>();
                 let lhum_num = lhum.load::<u8>();
