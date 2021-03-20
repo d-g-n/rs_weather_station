@@ -2,7 +2,6 @@
 
 #[macro_use] extern crate rocket;
 
-
 use std::error::Error;
 
 use rppal::gpio::{Gpio, Trigger, Level};
@@ -34,12 +33,13 @@ fn index() -> &'static str {
     "Hello, world!"
 }
 
-#[rocket::main]
-async fn main() {
+
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
 
     let client = Client::new("http://localhost:8086", "rs_weather_sensors");
     let gpios = Gpio::new().unwrap();
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
 
 
     #[derive(InfluxDbWriteable)]
@@ -135,9 +135,11 @@ async fn main() {
                     channel: chan
                 };
 
-                let write_result = client
-                    .query(&weather_reading.into_query("weather"))
-                    .await;
+                async {
+                    let write_result = client
+                        .query(&weather_reading.into_query("weather"))
+                        .await;
+                }
 
                 println!("rhum is: {}", rhum.to_string());
             }
@@ -175,7 +177,7 @@ async fn main() {
         }
     }
 
+    rocket::ignite().mount("/", routes![index]).launch();
 
-    rocket::ignite().mount("/", routes![index]).launch().await;
-
+    Ok(())
 }
