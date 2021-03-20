@@ -9,6 +9,8 @@ use rppal::system::DeviceInfo;
 use ringbuf::RingBuffer;
 use chrono::prelude::*;
 use bitvec::prelude::*;
+use influxdb::{Client, Query, Timestamp};
+use influxdb::InfluxDbWriteable;
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
@@ -34,8 +36,17 @@ fn index() -> &'static str {
 fn main() -> Result<(), Box<dyn Error>> {
     println!("Started {}.", DeviceInfo::new()?.model());
 
+    let client = Client::new("http://localhost:8086", "grafana");
     let gpios = Gpio::new().unwrap();
     let rb: RingBuffer<i64> = RingBuffer::<i64>::new(RING_BUFFER_SIZE);
+
+    #[derive(InfluxDbWriteable)]
+    struct WeatherReading {
+        time: DateTime<Utc>,
+        humidity: i32,
+        temp_c: i32,
+        temp_f: i32,
+    }
 
     let mut ingestion_vec: Vec<i64> = Vec::new();
 
@@ -70,27 +81,31 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             should_ingest = false;
 
-            let mut bv: BitVec<Msb0, u8> = BitVec::new();
+            let mut bit_vec: BitVec<Msb0, u8> = BitVec::new();
 
-            let bit_vec = ingestion_vec.iter().flat_map(|&x| {
+            ingestion_vec.iter().for_each(|&x| {
 
                 if x > (BIT0_LENGTH - 1000)
                     && x < (BIT0_LENGTH + 1000) {
-                    bv.push(false);
-                    Some("0")
+                    bit_vec.push(false);
                 } else if x > (BIT1_LENGTH - 1000)
                     && x < (BIT1_LENGTH + 1000) {
-                    bv.push(true);
-                    Some("1")
+                    bit_vec.push(true);
                 } else {
-                    None
+                    ()
                 }
 
-            }).collect::<Vec<_>>();
+            });
 
-            println!("bit vector is: {}", bv.to_string());
+            // bits 17 to 28 are temp in weird encoding
+            // bits 29 to 32 are lhum
+            // bits 33 to 36 are rhum
+            // bits 36 to 40 are the channel bits
+            let rhum: &BitSlice = &bit_vec[29 .. 32];
 
-            println!("generated bits are: {}", bit_vec.join(""));
+            println!("rhum is: {}", rhum.to_string());
+
+            println!("bit vector is: {}", bit_vec.to_string());
 
             ingestion_vec.clear();
         }

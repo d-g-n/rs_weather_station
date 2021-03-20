@@ -12,3 +12,4 @@ ringbuf = "0.2.3"
 rocket = "0.4.7"
 chrono = "0.4.19"
 bitvec = "0.21.1"
+influxdb = { version = "0.4.0", features = ["derive"] }
