@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         humidity: u8,
         temp_c: f64,
         temp_f: f64,
-        channel: u8,
+        #[influxdb(tag)] channel: u8,
     }
 
     let mut ingestion_vec: Vec<i64> = Vec::new();
