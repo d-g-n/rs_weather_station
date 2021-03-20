@@ -120,7 +120,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
                  */
 
-                let tempf_num = temp.load::<i16>();
+                let tempf_num = temp.load::<u16>();
                 let lhum_num = lhum.load::<u8>();
                 let rhum_num = rhum.load::<u8>();
                 let hum_num = lhum_num * 10 + rhum_num;
