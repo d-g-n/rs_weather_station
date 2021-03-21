@@ -12,4 +12,7 @@ rocket = "0.4.7"
 chrono = "0.4.19"
 bitvec = "0.21.1"
 async-std = "1.9.0"
+log = "0.4.0"
+env_logger = "0.8.3"
+config = "0.11"
 influxdb = { version = "0.4.0", features = ["derive"] }

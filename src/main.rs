@@ -1,24 +1,21 @@
 #![feature(proc_macro_hygiene, decl_macro)]
-
 #[macro_use] extern crate rocket;
+extern crate config;
+
+mod weather;
 
 use std::error::Error;
 
-use rppal::gpio::{Gpio, Trigger, Level};
+use rppal::gpio::{Gpio, Trigger};
 use rppal::system::DeviceInfo;
 use chrono::prelude::*;
 use bitvec::prelude::*;
 use influxdb::Client;
 use influxdb::InfluxDbWriteable;
+use log::{debug, error, log_enabled, info, Level};
 
 // Gpio uses BCM pin numbering.
 const GPIO_RADIO: u8 = 17;
-
-/*
-high 	- low 	- high 	- low 	- high 	- low 	- high 	- low 	- high 	- sync 	- 40 bits 	- end sample?
-48s  	- 41s 	- 46s  	- 42s 	- 47s  	- 42s 	- 47s  	- 42s 	- 27s  	- 345s 	- ???     	- 702s
-1.09ms 	- 0.92	- 1.04	- 0.95	- 1.07 	- 0.95	- 1.07	- 0.95	- 0.61	- 7.82 	- ???		- 15.92
- */
 
 const BIT1_LENGTH: i64 = 3900;
 const BIT0_LENGTH: i64 = 1800;
@@ -26,30 +23,32 @@ const FIRST_SYNC_LENGTH: i64 = 7900;
 const LAST_SYNC_LENGTH: i64 = 15900;
 const SIGNAL_VARIANCE: i64 = 500;
 
-const RING_BUFFER_SIZE: usize = 256;
-
+#[derive(InfluxDbWriteable)]
+struct WeatherReading {
+    time: DateTime<Utc>,
+    humidity: u8,
+    temp_c: f64,
+    temp_f: f64,
+    #[influxdb(tag)] channel: u8,
+}
 
 #[get("/")]
 fn index() -> &'static str {
     "Hello, world!"
 }
 
-
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Started {}.", DeviceInfo::new()?.model());
+    env_logger::init();
+
+    let mut settings = config::Config::default();
+    settings
+        .merge(config::File::with_name("app_config")).unwrap()
+        .merge(config::Environment::with_prefix("APP")).unwrap();
+
+    info!("Started on {}.", DeviceInfo::new()?.model());
 
     let client = Client::new("http://localhost:8086", "rs_weather_sensors");
     let gpios = Gpio::new().unwrap();
-
-
-    #[derive(InfluxDbWriteable)]
-    struct WeatherReading {
-        time: DateTime<Utc>,
-        humidity: u8,
-        temp_c: f64,
-        temp_f: f64,
-        #[influxdb(tag)] channel: u8,
-    }
 
     let mut ingestion_vec: Vec<i64> = Vec::new();
 
@@ -62,23 +61,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut should_ingest: bool = false;
 
-    let pin_res = pin.set_async_interrupt(Trigger::Both, move |_level: Level| {
-        //println!("received level {:?} ", level);
+    let pin_res = pin.set_async_interrupt(Trigger::Both, move |_| {
 
         let new_time = Utc::now();
         let duration_micros = new_time.signed_duration_since(last_time)
             .num_microseconds().unwrap();
+
         last_time = new_time;
-
-
-        //println!("received calculated duration {:?}", duration_micros);
 
         if duration_micros > (LAST_SYNC_LENGTH - SIGNAL_VARIANCE)
             && duration_micros < (LAST_SYNC_LENGTH + SIGNAL_VARIANCE) {
-            //println!("received calculated duration {:?}", duration_micros);
-            //println!("observed last sync signal");
-
-            //println!("ingestion length was: {}", ingestion_vec.len());
 
             should_ingest = false;
 
@@ -97,8 +89,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
             });
-
-            //println!("bit vector is: {}, length is: {}", bit_vec.to_string(), bit_vec.len());
 
             if bit_vec.len() == 40 {
                 // bits 16 to 28 are temp in weird encoding
@@ -147,10 +137,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 let tempc_float = (tempf_float - 32.0) * 5.0/9.0;
 
-                println!("Processing bit vector of length 40: {}", bit_vec.to_string());
-                println!("tempf: {}, tempc: {}, hum: {}, chan: {}",
+                info!("Processing bit vector of length 40: {}", bit_vec.to_string());
+                info!("tempf: {}, tempc: {}, hum: {}, chan: {}",
                          tempf_float, tempc_float, hum_num, chan);
-
 
                 let weather_reading = WeatherReading {
                     time: Utc::now(),
@@ -194,10 +183,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match pin_res {
         Ok(()) => {
-            println!("Registered GPIO pin okay");
+            info!("Registered GPIO pin okay");
         }
         Err(err) => {
-            println!("Could not register pin: {:?}", err);
+            error!("Could not register pin: {:?}", err);
         }
     }
 
