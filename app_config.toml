@@ -6,6 +6,8 @@ first_sync_length_micros = 7900
 last_sync_length_micros = 15900
 signal_variance_micros = 500
 
+expected_bit_length = 40
+
 influx_host = "localhost"
 influx_port = 8086
 influx_database = "rs_weather_sensors"
