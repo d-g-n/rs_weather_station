@@ -22,11 +22,6 @@ lazy_static! {
 
 fn get_config() -> AppConfig {
     let configs: AppConfig = toml::from_slice(&fs::read("./app_config.toml").unwrap()).unwrap();
-    /*    let configs: AppConfig = HoconLoader::new()
-    .load_file("./backend.conf")
-    .expect("Config load err")
-    .resolve()
-    .expect("Config deserialize err");*/
 
     configs
 }

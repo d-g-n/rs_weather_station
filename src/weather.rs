@@ -6,21 +6,43 @@ use influxdb::InfluxDbWriteable;
 use log::info;
 
 use config::APP_CONFIG;
+use std::collections::HashMap;
+use std::fmt;
 
 pub(crate) struct IngestionState {
     pub(crate) last_time: DateTime<Utc>,
     pub(crate) ingestion_vec: Vec<i64>,
     pub(crate) should_ingest: bool,
+    pub(crate) recent_readings: HashMap<u8, Vec<WeatherReading>>,
 }
 
-#[derive(InfluxDbWriteable)]
-struct WeatherReading {
+#[derive(InfluxDbWriteable, Copy, Clone)]
+pub struct WeatherReading {
     time: DateTime<Utc>,
     humidity: u8,
     temp_c: f64,
     temp_f: f64,
     #[influxdb(tag)]
     channel: u8,
+}
+
+impl PartialEq for WeatherReading {
+    fn eq(&self, other: &Self) -> bool {
+        self.humidity == other.humidity
+            && (self.temp_c - other.temp_c).abs() < 0.1
+            && self.channel == other.channel
+    }
+}
+impl Eq for WeatherReading {}
+
+impl fmt::Display for WeatherReading {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "({}, {}, {}, {})",
+            self.time, self.temp_c, self.humidity, self.channel
+        )
+    }
 }
 
 pub(crate) fn handle_interrupt(influx_client: &Client, mut state: &mut IngestionState) {
@@ -100,6 +122,68 @@ pub(crate) fn handle_interrupt(influx_client: &Client, mut state: &mut Ingestion
                 tempf_float, tempc_float, hum_num, chan
             );
 
+            // When a new valid reading is received we want to do a few things:
+            // Check the recent_readings map for each channel
+            // if any has an entry that happened longer than five seconds ago take the following action
+            // if there's only 1 entry, clear it
+            // if there's multiple entries and they're all identical, take it otherwise clear it
+            // after map is organised, input the chosen reading
+
+            fn millis_since(target_time: DateTime<Utc>) -> i64 {
+                Utc::now()
+                    .signed_duration_since(target_time)
+                    .num_milliseconds()
+            }
+
+            fn is_all_same(vec: &Vec<WeatherReading>) -> bool {
+                vec.iter()
+                    .fold((true, None), {
+                        |acc: (bool, Option<&WeatherReading>), elem| {
+                            if let Some(prev) = acc.1 {
+                                (acc.0 && (*prev == *elem), Some(elem))
+                            } else {
+                                (true, Some(elem))
+                            }
+                        }
+                    })
+                    .0
+            }
+
+            for (ch, weather_vec) in state.recent_readings.iter_mut() {
+                match weather_vec.iter().find(|&x| millis_since(x.time) >= 5000) {
+                    Some(_) => {
+                        // given that it's stale, start processing
+                        if weather_vec.len() > 1 && is_all_same(weather_vec) {
+                            let chosen_reading = weather_vec.first().unwrap();
+
+                            info!(
+                                "[ch: {}]: weather vec was greater than 1 and is all same, inserting: {}",
+                                ch,
+                                chosen_reading
+                            );
+
+                            async_std::task::block_on(async {
+                                let _write_result = influx_client
+                                    .query(&chosen_reading.into_query("weather"))
+                                    .await;
+                            });
+
+                            weather_vec.clear();
+                        } else {
+                            info!(
+                                "[ch: {}]: weather vec len: {} was too small or not the same, dumping",
+                                ch,
+                                weather_vec.len()
+                            );
+                            weather_vec.clear();
+                        }
+                    }
+                    None => {
+                        info!("[ch: {}]: not stale enough, doing nothing", ch)
+                    }
+                }
+            }
+
             let weather_reading = WeatherReading {
                 time: Utc::now(),
                 humidity: hum_num,
@@ -108,11 +192,10 @@ pub(crate) fn handle_interrupt(influx_client: &Client, mut state: &mut Ingestion
                 channel: chan,
             };
 
-            async_std::task::block_on(async {
-                let _write_result = influx_client
-                    .query(&weather_reading.into_query("weather"))
-                    .await;
-            });
+            let st_update: &mut Vec<WeatherReading> =
+                state.recent_readings.entry(chan).or_insert(Vec::new());
+
+            st_update.push(weather_reading.clone());
         }
 
         state.ingestion_vec.clear();

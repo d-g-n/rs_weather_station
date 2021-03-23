@@ -17,6 +17,7 @@ use influxdb::Client;
 use log::{error, info};
 use rppal::gpio::{Gpio, Trigger};
 use rppal::system::DeviceInfo;
+use std::collections::HashMap;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -44,6 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         last_time: Utc::now(),
         ingestion_vec: Vec::new(),
         should_ingest: false,
+        recent_readings: HashMap::new(),
     };
 
     let pin_res = pin.set_async_interrupt(Trigger::Both, move |_| {
