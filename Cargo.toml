@@ -7,20 +7,15 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rppal = "0.11.3"
-rocket = "0.4.7"
-chrono = "0.4.19"
-bitvec = "0.21.1"
-async-std = "1.9.0"
-log = "0.4.0"
-env_logger = "0.8.3"
+rppal = "0.13"
+rocket = { version = "0.5.0-rc.2", features = ["json"] }
+chrono = "0.4"
+bitvec = "1.0"
+async-std = "1.12"
+log = "0.4"
+env_logger = "0.9"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0.59"
+serde_json = "1.0"
 toml = "0.5"
-lazy_static = "1.4.0"
-influxdb = { version = "0.4.0", features = ["derive"] }
-
-[dependencies.rocket_contrib]
-version = "0.4.7"
-default-features = false
-features = ["json"]
+lazy_static = "1.4"
+influxdb = { version = "0.5", features = ["derive"] }

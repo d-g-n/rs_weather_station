@@ -1,4 +1,3 @@
-#![feature(proc_macro_hygiene, decl_macro)]
 #[macro_use]
 extern crate rocket;
 
@@ -8,9 +7,10 @@ mod config;
 use config::APP_CONFIG;
 mod weather;
 
+use rocket::data::ToByteUnit;
 use weather::IngestionState;
 
-use std::error::Error;
+
 
 use chrono::prelude::*;
 use influxdb::InfluxDbWriteable;
@@ -22,7 +22,6 @@ use rppal::gpio::{Gpio, Trigger};
 use rppal::system::DeviceInfo;
 use serde_json::Value;
 use std::collections::HashMap;
-use std::io::Read;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -30,10 +29,9 @@ fn index() -> &'static str {
 }
 
 #[post("/esp", format = "json", data = "<data>")]
-fn esp_post(influx_client: State<Client>, data: Data) -> Status {
-    let mut buffer: String = String::new();
+async fn esp_post(influx_client: &State<Client>, data: Data<'_>) -> Status {
 
-    data.open().read_to_string(&mut buffer).unwrap();
+    let buffer = data.open(10.bytes()).into_string().await.unwrap().into_inner();
 
     let v: Value = serde_json::from_str(&*buffer).unwrap();
 
@@ -62,7 +60,8 @@ fn esp_post(influx_client: State<Client>, data: Data) -> Status {
     Status::Ok
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[launch]
+fn rocket() -> _ {
     env_logger::init();
 
     let client = Client::new(
@@ -109,15 +108,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    rocket::ignite()
-        .manage(client_other)
-        .mount("/api", routes![index, esp_post])
-        .launch();
+    
 
     info!(
         "Started rs_weather_station on {}.",
-        DeviceInfo::new()?.model()
+        DeviceInfo::new().unwrap().model()
     );
 
-    Ok(())
+    rocket::build()
+        .manage(client_other)
+        .mount("/api", routes![index, esp_post])
+
 }

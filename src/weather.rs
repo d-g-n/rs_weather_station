@@ -60,7 +60,7 @@ pub(crate) fn handle_interrupt(influx_client: &Client, mut state: &mut Ingestion
     {
         state.should_ingest = false;
 
-        let mut bit_vec: BitVec<Msb0, usize> = BitVec::new();
+        let mut bit_vec: BitVec<usize, Msb0> = bitvec![usize, Msb0;];
 
         state.ingestion_vec.iter().for_each(|&x| {
             if x > (APP_CONFIG.bit0_length_micros - APP_CONFIG.signal_variance_micros)
@@ -77,10 +77,10 @@ pub(crate) fn handle_interrupt(influx_client: &Client, mut state: &mut Ingestion
         });
 
         if bit_vec.len() == APP_CONFIG.expected_bit_length as usize {
-            let temp: &BitSlice<Msb0, usize> = &bit_vec[16..28];
-            let lhum: &BitSlice<Msb0, usize> = &bit_vec[28..32];
-            let rhum: &BitSlice<Msb0, usize> = &bit_vec[32..36];
-            let chan: &BitSlice<Msb0, usize> = &bit_vec[36..40];
+            let temp: &BitSlice<usize, Msb0> = &bit_vec[16..28];
+            let lhum: &BitSlice<usize, Msb0> = &bit_vec[28..32];
+            let rhum: &BitSlice<usize, Msb0> = &bit_vec[32..36];
+            let chan: &BitSlice<usize, Msb0> = &bit_vec[36..40];
 
             let tempf_num = temp.load::<u16>();
             let lhum_num = lhum.load::<u8>();
